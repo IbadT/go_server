@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # Сервис для PostgreSQL
+  db:
+    image: postgres:latest
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: go_server
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - app-network
+
+  # Сервис для Go-приложения
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: go_app
+    depends_on:
+      - db
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: go_server
+    ports:
+      - "8080:8080"
+    networks:
+      - app-network
+    volumes:
+      - .:/app
+    command: go run main.go
+
+# Настройки сети
+networks:
+  app-network:
+    driver: bridge
+
+# Настройки volumes для PostgreSQL
+volumes:
+  postgres_data:

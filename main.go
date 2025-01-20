@@ -3,15 +3,30 @@ package main
 // написать сервер из уроков
 
 import (
+	"fmt"
+	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/labstack/echo/v4"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
+// type Message struct {
+// 	ID   int    `json:"id"`
+// 	Text string `json:"text"`
+// }
+
 type Message struct {
-	ID   int    `json:"id"`
-	Text string `json:"text"`
+	ID int `json:"id" gorm:"primaryKey;autoIncrement"` // Уникальный идентификатор
+	// ID        uuid.UUID `json:"id" gorm:"type:uuid;primaryKey;default:uuid_generate_v4()"`
+	// ID        uuid.UUID `json:"id" gorm:"type:uuid;primaryKey;default:uuid.New()"`
+	Text      string    `json:"text" gorm:"type:text;not null"`   // Текст сообщения
+	CreatedAt time.Time `json:"created_at" gorm:"autoCreateTime"` // Время создания записи
+	UpdatedAt time.Time `json:"updated_at" gorm:"autoUpdateTime"` // Время последнего обновления записи
+	// DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`            // Время удаления (для мягкого удаления)
 }
 
 type Response struct {
@@ -19,16 +34,63 @@ type Response struct {
 	Message string `json:"message"`
 }
 
+var db *gorm.DB
+
+// func initDB() {
+// 	dsn := "host=localhost user=postgres password=admin dbname=go_server port=5432 sslmode=disable"
+// 	var err error
+// 	db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+// 	if err != nil {
+// 		log.Fatalf("Не удалось подключиться к базе данных: %v", err)
+// 	}
+// 	db.AutoMigrate(&Message{}) // автоматически добавит таблицу в базу данных
+// }
+
+func initDB() error {
+	// Получаем параметры подключения из переменных окружения
+	// dsn := os.Getenv("DB_DSN") // Пример: "host=localhost user=postgres password=admin dbname=go_server port=5432 sslmode=disable"
+	dsn := "host=db user=postgres password=postgres dbname=go_server port=5432 sslmode=disable"
+	if dsn == "" {
+		return fmt.Errorf("переменная окружения DB_DSN не задана")
+	}
+
+	var err error
+	db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		return fmt.Errorf("не удалось подключиться к базе данных: %w", err)
+	}
+
+	// Автомиграция с обработкой ошибок
+	if err := db.AutoMigrate(&Message{}); err != nil {
+		return fmt.Errorf("не удалось выполнить миграцию: %w", err)
+	}
+
+	log.Println("Подключение к базе данных успешно установлено")
+	return nil
+}
+
 // var messages []Message
-var messages = make(map[int]Message)
-var nextID = 1
+
+// var messages = make(map[int]Message)
+// var nextID = 1
 
 func GetHandler(c echo.Context) error {
-	var msgSlice []Message
-	for _, msg := range messages {
-		msgSlice = append(msgSlice, msg)
+	var messages []Message
+
+	if err := db.Find(&messages).Error; err != nil {
+		return c.JSON(http.StatusBadRequest, Response{
+			Status:  "Error",
+			Message: "Could not find the messages",
+		})
 	}
+
 	return c.JSON(http.StatusOK, &messages)
+
+	// var msgSlice []Message
+	// for _, msg := range messages {
+	// 	msgSlice = append(msgSlice, msg)
+	// }
+	// return c.JSON(http.StatusOK, &messages)
 }
 
 func PostHandler(c echo.Context) error {
@@ -41,12 +103,17 @@ func PostHandler(c echo.Context) error {
 		})
 	}
 
-	message.ID = nextID
+	if err := db.Create(&message).Error; err != nil {
+		return c.JSON(http.StatusBadRequest, Response{
+			Status:  "Error",
+			Message: "Could not create the message",
+		})
+	}
 
-	messages[message.ID] = message
-	// messages = append(messages, message)
-
-	nextID++
+	// message.ID = nextID
+	// messages[message.ID] = message
+	// // messages = append(messages, message)
+	// nextID++
 
 	return c.JSON(http.StatusOK, Response{
 		Status:  "ok",
@@ -68,7 +135,7 @@ func PatchHandler(c echo.Context) error {
 	if err := c.Bind(&updatedMessage); err != nil {
 		return c.JSON(http.StatusBadRequest, Response{
 			Status:  "Error",
-			Message: "Could not update the message",
+			Message: "Invalid input",
 		})
 	}
 
@@ -81,15 +148,23 @@ func PatchHandler(c echo.Context) error {
 	// 	}
 	// }
 
-	if _, exists := messages[id]; !exists {
+	/////////////////
+
+	// if _, exists := messages[id]; !exists {
+	// 	return c.JSON(http.StatusBadRequest, Response{
+	// 		Status:  "Error",
+	// 		Message: "Message was not found",
+	// 	})
+	// }
+	// updatedMessage.ID = id
+	// messages[id] = updatedMessage
+
+	if err := db.Model(&Message{}).Where("id = ?", id).Update("text", updatedMessage.Text).Error; err != nil {
 		return c.JSON(http.StatusBadRequest, Response{
 			Status:  "Error",
-			Message: "Message was not found",
+			Message: "Could not update the message",
 		})
 	}
-
-	updatedMessage.ID = id
-	messages[id] = updatedMessage
 
 	return c.JSON(http.StatusOK, Response{
 		Status:  "ok",
@@ -107,13 +182,21 @@ func DeleteHandle(c echo.Context) error {
 		})
 	}
 
-	if _, exist := messages[id]; !exist {
+	if err := db.Delete(&Message{}, id).Error; err != nil {
 		return c.JSON(http.StatusBadRequest, Response{
 			Status:  "Error",
-			Message: "Message was not found",
+			Message: "Could not delete the message",
 		})
 	}
-	delete(messages, id)
+
+	// if _, exist := messages[id]; !exist {
+	// 	return c.JSON(http.StatusBadRequest, Response{
+	// 		Status:  "Error",
+	// 		Message: "Message was not found",
+	// 	})
+	// }
+	// delete(messages, id)
+
 	return c.JSON(http.StatusOK, Response{
 		Status:  "ok",
 		Message: "Message was successfully deleted",
@@ -138,6 +221,7 @@ func DeleteHandle(c echo.Context) error {
 // }
 
 func main() {
+	initDB() // инициализируем наше базу дынных
 	e := echo.New()
 
 	e.GET("/messages", GetHandler)
