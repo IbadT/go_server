@@ -1,8 +1,9 @@
 package models
 
 type User struct {
-	ID       string `json:"ID"`
+	// gorm.Model
+	ID       uint   `json:"id" gorm:"primaryKey;autoincrement"`
 	Name     string `json:"name"`
-	Login    string `json:"login"`
+	Login    string `json:"login" gorm:"unique"`
 	Password string `json:"password"`
 }
