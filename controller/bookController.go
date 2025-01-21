@@ -4,142 +4,187 @@ import (
 	"net/http"
 
 	"github.com/IbadT/go_server/config"
-	"github.com/IbadT/go_server/model"
+	. "github.com/IbadT/go_server/model"
 	"github.com/labstack/echo/v4"
 )
 
-func GetBook(c echo.Context) error {
-	id := c.Param("id")
-	db := config.DB()
-
-	var books []*model.Book
-
-	if err := db.Find(&books, id).Error; err != nil {
-		data := map[string]interface{}{
-			"message": err.Error(),
-		}
-
-		return c.JSON(http.StatusOK, data)
-	}
-
-	response := map[string]interface{}{
-		"data": books[0],
-	}
-
-	return c.JSON(http.StatusOK, response)
-}
-
+// GetAllBooks godoc
+// @Summary Get all books
+// @Description Get all books
+// @Tags books
+// @Accept  json
+// @Produce  json
+// @Success 200 {array} Book
+// @Router /book/ [get]
 func GetAllBooks(c echo.Context) error {
 	db := config.DB()
-
-	var books []*model.Book
+	var books []*Book
 	if err := db.Find(&books).Error; err != nil {
-		data := map[string]interface{}{
-			"message": err.Error(),
-		}
+		// if err := db.Select("id", "name", "description", "created_at", "updated_at").Find(&books).Error; err != nil {
+		// if err := db.Preload("Author").Preload("Publisher").Preload("Categories").Find(&book).Error; err != nil {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "Книги не найдены"})
+	}
+	return c.JSON(http.StatusOK, books)
+}
 
-		return c.JSON(http.StatusOK, data)
+func GetBook(c echo.Context) error {
+	id := c.Param("id")
+
+	db := config.DB()
+	var book *Book
+	if err := db.Preload("Author").Preload("Publisher").Preload("Categories").First(&book, id).Error; err != nil {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "Book not found"})
 	}
 
-	response := map[string]interface{}{
-		"data": books,
-	}
-
-	return c.JSON(http.StatusOK, response)
+	return c.JSON(http.StatusOK, book)
 }
 
 func CreateBook(c echo.Context) error {
-	b := new(model.Book)
+	book := new(Book)
+	if err := c.Bind(book); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request"})
+	}
+
 	db := config.DB()
-
-	// Binding data
-	if err := c.Bind(b); err != nil {
-		data := map[string]interface{}{
-			"message": err.Error(),
-		}
-
-		return c.JSON(http.StatusInternalServerError, data)
+	if err := db.Create(book).Error; err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to create book"})
 	}
 
-	book := &model.Book{
-		Name:        b.Name,
-		Description: b.Description,
-	}
-
-	if err := db.Create(&book).Error; err != nil {
-		data := map[string]interface{}{
-			"message": err.Error(),
-		}
-
-		return c.JSON(http.StatusInternalServerError, data)
-	}
-
-	response := map[string]interface{}{
-		"data": b,
-	}
-
-	return c.JSON(http.StatusOK, response)
+	return c.JSON(http.StatusCreated, book)
 }
 
-func UpdateBook(c echo.Context) error {
-	id := c.Param("id")
-	b := new(model.Book)
-	db := config.DB()
+// func GetBook(c echo.Context) error {
+// 	id := c.Param("id")
+// 	db := config.DB()
 
-	// Binding data
-	if err := c.Bind(b); err != nil {
-		data := map[string]interface{}{
-			"message": err.Error(),
-		}
+// 	var books []*model.Book
 
-		return c.JSON(http.StatusInternalServerError, data)
-	}
+// 	if err := db.Find(&books, id).Error; err != nil {
+// 		data := map[string]interface{}{
+// 			"message": err.Error(),
+// 		}
 
-	existing_book := new(model.Book)
+// 		return c.JSON(http.StatusOK, data)
+// 	}
 
-	if err := db.First(&existing_book, id).Error; err != nil {
-		data := map[string]interface{}{
-			"message": err.Error(),
-		}
+// 	response := map[string]interface{}{
+// 		"data": books[0],
+// 	}
 
-		return c.JSON(http.StatusNotFound, data)
-	}
+// 	return c.JSON(http.StatusOK, response)
+// }
 
-	existing_book.Name = b.Name
-	existing_book.Description = b.Description
-	if err := db.Save(&existing_book).Error; err != nil {
-		data := map[string]interface{}{
-			"message": err.Error(),
-		}
+// func GetAllBooks(c echo.Context) error {
+// 	db := config.DB()
 
-		return c.JSON(http.StatusInternalServerError, data)
-	}
+// 	var books []*model.Book
+// 	if err := db.Find(&books).Error; err != nil {
+// 		data := map[string]interface{}{
+// 			"message": err.Error(),
+// 		}
 
-	response := map[string]interface{}{
-		"data": existing_book,
-	}
+// 		return c.JSON(http.StatusOK, data)
+// 	}
 
-	return c.JSON(http.StatusOK, response)
-}
+// 	response := map[string]interface{}{
+// 		"data": books,
+// 	}
 
-func DeleteBook(c echo.Context) error {
-	id := c.Param("id")
-	db := config.DB()
+// 	return c.JSON(http.StatusOK, response)
+// }
 
-	book := new(model.Book)
+// func CreateBook(c echo.Context) error {
+// 	b := new(model.Book)
+// 	db := config.DB()
 
-	if err := db.Delete(&book, id).Error; err != nil {
-		// err := db.Delete(&book, id).Error
-		// if err != nil {
-		data := map[string]interface{}{
-			"message": err.Error(),
-		}
+// 	// Binding data
+// 	if err := c.Bind(b); err != nil {
+// 		data := map[string]interface{}{
+// 			"message": err.Error(),
+// 		}
 
-		return c.JSON(http.StatusInternalServerError, data)
-	}
+// 		return c.JSON(http.StatusInternalServerError, data)
+// 	}
 
-	response := map[string]interface{}{
-		"message": "a book has been deleted",
-	}
-	return c.JSON(http.StatusOK, response)
-}
+// 	book := &model.Book{
+// 		Name:        b.Name,
+// 		Description: b.Description,
+// 	}
+
+// 	if err := db.Create(&book).Error; err != nil {
+// 		data := map[string]interface{}{
+// 			"message": err.Error(),
+// 		}
+
+// 		return c.JSON(http.StatusInternalServerError, data)
+// 	}
+
+// 	response := map[string]interface{}{
+// 		"data": b,
+// 	}
+
+// 	return c.JSON(http.StatusOK, response)
+// }
+
+// func UpdateBook(c echo.Context) error {
+// 	id := c.Param("id")
+// 	b := new(model.Book)
+// 	db := config.DB()
+
+// 	// Binding data
+// 	if err := c.Bind(b); err != nil {
+// 		data := map[string]interface{}{
+// 			"message": err.Error(),
+// 		}
+
+// 		return c.JSON(http.StatusInternalServerError, data)
+// 	}
+
+// 	existing_book := new(model.Book)
+
+// 	if err := db.First(&existing_book, id).Error; err != nil {
+// 		data := map[string]interface{}{
+// 			"message": err.Error(),
+// 		}
+
+// 		return c.JSON(http.StatusNotFound, data)
+// 	}
+
+// 	existing_book.Name = b.Name
+// 	existing_book.Description = b.Description
+// 	if err := db.Save(&existing_book).Error; err != nil {
+// 		data := map[string]interface{}{
+// 			"message": err.Error(),
+// 		}
+
+// 		return c.JSON(http.StatusInternalServerError, data)
+// 	}
+
+// 	response := map[string]interface{}{
+// 		"data": existing_book,
+// 	}
+
+// 	return c.JSON(http.StatusOK, response)
+// }
+
+// func DeleteBook(c echo.Context) error {
+// 	id := c.Param("id")
+// 	db := config.DB()
+
+// 	book := new(model.Book)
+
+// 	if err := db.Delete(&book, id).Error; err != nil {
+// 		// err := db.Delete(&book, id).Error
+// 		// if err != nil {
+// 		data := map[string]interface{}{
+// 			"message": err.Error(),
+// 		}
+
+// 		return c.JSON(http.StatusInternalServerError, data)
+// 	}
+
+// 	response := map[string]interface{}{
+// 		"message": "a book has been deleted",
+// 	}
+// 	return c.JSON(http.StatusOK, response)
+// }
