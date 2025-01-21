@@ -30,11 +30,33 @@ import (
 // @externalDocs.url          https://swagger.io/resources/open-api/
 func main() {
 	e := echo.New()
+
+	///
+
+	// e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+	// 	return func(c echo.Context) error {
+	// 		start := time.Now()
+
+	// 		// Выполнение следующего обработчика
+	// 		err := next(c)
+
+	// 		// Фиксация времени окончания
+	// 		elapsed := time.Since(start)
+
+	// 		// Логирование времени выполнения
+	// 		c.Logger().Infof("Request took: %s", elapsed)
+
+	// 		return err
+	// 	}
+	// })
+
 	e.GET("/", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]interface{}{
 			"hello": "world",
 		})
 	})
+
+	///
 
 	// Connect To Database
 	config.DatabaseInit()
@@ -91,5 +113,16 @@ func main() {
 	// categoryRoute.DELETE("/:id", controller.DeleteCategory)
 
 	// r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-	e.Logger.Fatal(e.Start(":8080"))
+	// e.Logger.Fatal(e.Start(":8080"))
+
+	////
+
+	// e.GET("/example", func(c echo.Context) error {
+	// 	time.Sleep(100 * time.Millisecond)
+	// 	return c.JSON(http.StatusOK, map[string]string{
+	// 		"message": "Request processed successfully",
+	// 	})
+	// })
+
+	e.Start(":8080")
 }
