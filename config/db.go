@@ -21,11 +21,13 @@ func DatabaseInit() {
 
 	database.Exec(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`)
 	database.AutoMigrate(
-		&model.Book{},
-		&model.Author{},
-		&model.Category{},
-		&model.Publisher{},
 		&model.User{},
+		&model.Avatar{},
+		&model.Like{},
+		&model.Post{},
+		&model.Role{},
+		&model.Comment{},
+		&model.Friend{},
 	)
 }
 

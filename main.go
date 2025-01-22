@@ -71,6 +71,7 @@ func main() {
 
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
+	e.Group("/api")
 	routes.RegisterRoutes(e)
 
 	// // programmatically set swagger info

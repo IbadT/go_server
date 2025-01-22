@@ -5,9 +5,5 @@ import (
 )
 
 func RegisterRoutes(e *echo.Echo) {
-	RegisterBookRoutes(e)
-	RegisterAuthorRoutes(e)
-	RegisterPublisherRoutes(e)
-	RegisterCategoryRoutes(e)
 	RegisterUserRoutes(e) // Новый роут
 }
