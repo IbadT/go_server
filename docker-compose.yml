@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Сервис для PostgreSQL
   db:
@@ -37,6 +35,17 @@ services:
     volumes:
       - .:/app
     command: go run main.go
+  
+  # swagger-ui:
+  #   image: swaggerapi/swagger-ui
+  #   container_name: swagger-ui
+  #   ports:
+  #     - "8081:8080"  # Порт для доступа к Swagger UI
+  #   volumes:
+  #     - ./docs/swagger.json:/usr/share/nginx/html/swagger.json  # Путь к вашему swagger.json
+  #   environment:
+  #     - SWAGGER_JSON=/usr/share/nginx/html/swagger.json  # Указываем путь к swagger.json внутри контейнера
+  #   restart: always
 
 # Настройки сети
 networks:
