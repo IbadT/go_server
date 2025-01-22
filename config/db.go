@@ -19,6 +19,7 @@ func DatabaseInit() {
 		log.Fatalf("Не удалось подключиться к базе данных: %v", e)
 	}
 
+	database.Exec(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`)
 	database.AutoMigrate(
 		&model.Book{},
 		&model.Author{},

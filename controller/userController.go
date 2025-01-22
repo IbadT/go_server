@@ -8,10 +8,13 @@ import (
 	"github.com/IbadT/go_server/model"
 	"github.com/IbadT/go_server/service"
 	"github.com/IbadT/go_server/types"
+	"github.com/google/uuid"
 
 	"github.com/IbadT/go_server/utils"
 	"github.com/labstack/echo/v4"
 )
+
+// id, err := uuid.Parse(c.Param("id"))
 
 // работает
 func GetAllUsers(c echo.Context) error {
@@ -27,7 +30,11 @@ func GetAllUsers(c echo.Context) error {
 
 // работает
 func GetUser(c echo.Context) error {
-	id := c.Param("id")
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		return utils.NewError("Неверый id")
+	}
+	// id := c.Param("id")
 
 	var user model.User
 
@@ -47,7 +54,11 @@ func GetUser(c echo.Context) error {
 
 // работает
 func UpdateUser(c echo.Context) error {
-	id := c.Param("id")
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		return utils.NewError("Неверый id")
+	}
+	// id := c.Param("id")
 
 	// Привязка данных из запроса
 	var inputUser model.User
@@ -65,7 +76,11 @@ func UpdateUser(c echo.Context) error {
 
 // работает
 func DeleteUser(c echo.Context) error {
-	id := c.Param("id")
+	id, err := uuid.Parse(c.Param("ID"))
+	if err != nil {
+		return utils.NewError("Неверый id")
+	}
+	// id := c.Param("id")
 	var user model.User
 	db := config.DB()
 
@@ -88,8 +103,6 @@ func DeleteUser(c echo.Context) error {
 func Register(c echo.Context) error {
 	var user model.User
 
-	db := config.DB()
-
 	if err := c.Bind(&user); err != nil {
 		return utils.ErrorResponse(c, http.StatusBadRequest, "Invalid ID")
 	}
@@ -98,6 +111,7 @@ func Register(c echo.Context) error {
 		return utils.ErrorResponse(c, http.StatusBadRequest, "Invalid ID")
 	}
 
+	db := config.DB()
 	if err := db.Create(&user).Error; err != nil {
 		return utils.ErrorResponse(c, http.StatusBadRequest, "Invalid ID")
 	}
